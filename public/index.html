@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Canvas Wars</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .controls { position: relative; }
+    .brand-abs {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      display: block;
+      max-width: 550px;
+    }
+    .brand-abs img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    @media (max-width: 900px) {
+      .brand-abs {
+        position: static;
+        margin-top: 8px;
+        max-width: 260px;
+      }
+    }
+
+    .board {
+      background-color: #2b2b2b;
+      padding: 20px;
+      border-radius: 10px;
+      position: relative;
+    }
+    .board canvas {
+      display: block;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .board .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(24px, 5vw, 48px);
+      color: #333;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Canvas Wars</h1>
+      <div class="status">Conn: <span id="conn">—</span></div>
+    </header>
+
+    <section class="controls">
+      <div class="block">
+        <label>PIN</label>
+        <input id="pin" type="text" placeholder="e.g., 123456" maxlength="12">
+      </div>
+      <div class="block">
+        <label>Name</label>
+        <input id="name" type="text" placeholder="Your name" maxlength="24">
+      </div>
+      <div class="block">
+        <label>Team</label>
+        <select id="team">
+          <option value="A">A</option>
+          <option value="B">B</option>
+          <option value="C">C</option>
+        </select>
+      </div>
+      <div class="block inline">
+        <label><input id="isHost" type="checkbox"> Host mode</label>
+      </div>
+      <div class="block">
+        <button id="btnJoin">Join</button>
+      </div>
+
+      <div class="brand-abs">
+        <img src="hsd%20logo.png"
+             alt="Hochschule Düsseldorf – Fachbereich Elektro- &amp; Informationstechnik">
+      </div>
+    </section>
+
+    <section class="host-panel" id="hostPanel" hidden>
+      <h2>Host Panel</h2>
+      <div class="grid">
+        <div class="block">
+          <label>Grid Size</label>
+          <input id="gridSize" type="number" min="10" max="150" step="10" value="50">
+        </div>
+        <div class="block">
+          <label>Cooldown (sec)</label>
+          <input id="cooldown" type="number" min="1" max="30" step="1" value="5">
+        </div>
+        <div class="block">
+          <label>Round Timer (min)</label>
+          <input id="roundMin" type="number" min="0" max="120" step="5" value="0">
+        </div>
+      </div>
+      <div class="row">
+        <button id="btnCreate">Create Session</button>
+        <button id="btnStart">Start</button>
+        <button id="btnStop">Stop</button>
+        <button id="btnReset">Reset Grid</button>
+        <button id="btnExport">Export PNG</button>
+      </div>
+    </section>
+
+    <section class="palette">
+      <div class="colors" id="colors"></div>
+      <div id="cooldownLabel">Cooldown: ready</div>
+    </section>
+
+    <section class="board">
+      <canvas id="canvas" width="800" height="800"></canvas>
+      <div id="overlay" class="overlay" hidden></div>
+    </section>
+
+    <section class="footer">
+      <div>Session: <span id="session">—</span></div>
+      <div>Status: <span id="status">lobby</span> · Timer: <span id="timer">—</span></div>
+    </section>
+  </div>
+
+  <!-- Socket.IO-Client wird vom Server ausgeliefert -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js" type="module"></script>
+</body>
+</html>
