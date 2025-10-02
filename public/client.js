@@ -17,6 +17,18 @@ const overlay = $('overlay');
 const canvas = $('canvas');
 const ctx = canvas.getContext('2d');
 
+// --- Mobile: Scroll/Touch auf Canvas nicht an die Seite durchreichen ---
+(function setupMobileScrollGuards(el){
+  if (!el) return;
+  // verhindert Scrollen / Pull-to-Refresh während Interaktion mit dem Canvas
+  el.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+  el.addEventListener('touchmove',  e => e.preventDefault(), { passive: false });
+  // einige Browser mappen auch Wheel-Gesten
+  el.addEventListener('wheel', e => {
+    if (e.ctrlKey || e.deltaY !== 0) e.preventDefault();
+  }, { passive: false });
+})(canvas);
+
 // Overlay helpers
 function showOverlay(text) {
   overlay.textContent = text || '';
@@ -256,11 +268,36 @@ drawGridLines();
 hideOverlay();
 requestAnimationFrame(tick);
 
-// Re-dimensionieren
-window.addEventListener('resize', () => {
-  computeCellSize();
-  drawGridLines();
-});
+// --- Mobile-friendly resize: Debounce + Mini-Resizes ignorieren ---
+(() => {
+  let resizeTimer = null;
+  let lastH = window.innerHeight;
+  let lastW = window.innerWidth;
+
+  function applyResize() {
+    computeCellSize();
+    drawGridLines();
+    lastH = window.innerHeight;
+    lastW = window.innerWidth;
+  }
+
+  window.addEventListener('resize', () => {
+    // Viele Mobile-"Resizes" kommen nur durch Adressleisten-Animation
+    const dh = Math.abs(window.innerHeight - lastH);
+    const dw = Math.abs(window.innerWidth  - lastW);
+
+    // winzige Änderungen ignorieren (Schwellen anpassbar)
+    if (dh < 80 && dw < 30) return;
+
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(applyResize, 200);
+  }, { passive: true });
+})();
+
+// --- (Optional, sehr leicht) Keepalive, falls Server Idle-Timeouts hat ---
+setInterval(() => {
+  try { socket.emit('ping', Date.now()); } catch (_) {}
+}, 25000);
 
 // Debug
 window.placePixelLocal = placePixelLocal;
