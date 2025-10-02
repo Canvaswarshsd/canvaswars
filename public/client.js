@@ -17,6 +17,9 @@ const overlay = $('overlay');
 const canvas = $('canvas');
 const ctx = canvas.getContext('2d');
 
+// --- Lokaler Grid-Cache: sorgt dafür, dass wir nach Resize alles neu malen können ---
+let localGrid = Object.create(null);
+
 // Overlay helpers
 function showOverlay(text) {
   overlay.textContent = text || '';
@@ -110,10 +113,17 @@ function drawGridLines() {
   }
 }
 
-function placePixelLocal(x,y,color) {
+// Nur zeichnen (nicht speichern)
+function paintCell(x,y,color) {
   const s = state.cellSize;
   ctx.fillStyle = color;
   ctx.fillRect(x*s+1, y*s+1, s-1, s-1);
+}
+
+// Zeichnen + im lokalen Cache speichern
+function setCellLocal(x, y, color) {
+  localGrid[`${x}_${y}`] = color;
+  paintCell(x, y, color);
 }
 
 function canvasXY(evt) {
@@ -122,6 +132,17 @@ function canvasXY(evt) {
   const x = Math.floor((evt.clientX - rect.left) / pxPerCell);
   const y = Math.floor((evt.clientY - rect.top) / pxPerCell);
   return { x, y };
+}
+
+// Alle Zellen aus dem lokalen Cache neu malen
+function drawAllCellsFromCache() {
+  for (const key in localGrid) {
+    const [xs, ys] = key.split('_');
+    const x = parseInt(xs, 10);
+    const y = parseInt(ys, 10);
+    const color = localGrid[key];
+    paintCell(x, y, color);
+  }
 }
 
 // Cooldown & Timer
@@ -187,7 +208,7 @@ canvas.addEventListener('click', (evt) => {
   if (x < 0 || y < 0 || x >= state.gridSize || y >= state.gridSize) return;
 
   state.lastPlaceAt = now;
-  placePixelLocal(x,y,state.color);
+  setCellLocal(x, y, state.color);
   socket.emit('placePixel', {
     pin: state.pin, x, y, color: state.color, team: state.team
   });
@@ -210,7 +231,7 @@ $('btnExport').addEventListener('click', () => {
 // Socket handlers
 socket.on('connect', () => {
   conn.textContent = 'OK';
-  // WICHTIG: nach jeder (Neu-)Verbindung automatisch wieder joinen
+  // Nach jeder (Neu-)Verbindung automatisch wieder beitreten
   if (state.pin && state.name) {
     socket.emit('join', {
       pin: state.pin,
@@ -226,23 +247,39 @@ socket.on('disconnect', () => { conn.textContent = '—'; });
 socket.on('snapshot', (data = {}) => {
   const { meta, grid } = data;
   applyMeta(meta);
-  computeCellSize();
-  drawGridLines();
+
+  // Cache neu aufbauen aus Snapshot
+  localGrid = Object.create(null);
   if (grid) {
     for (const key in grid) {
       const [xStr,yStr] = key.split('_');
       const cell = grid[key];
-      placePixelLocal(parseInt(xStr,10), parseInt(yStr,10), cell.color);
+      localGrid[key] = cell.color;
     }
   }
+
+  computeCellSize();
+  drawGridLines();
+  drawAllCellsFromCache();
+
   state.joined = true;
 });
 
 socket.on('meta', (meta) => { applyMeta(meta); });
-socket.on('gridReset', () => { drawGridLines(); });
+
+// Bei Grid-Reset: Cache leeren + neu zeichnen
+socket.on('gridReset', () => {
+  localGrid = Object.create(null);
+  drawGridLines();
+  // nichts zu malen
+});
+
 socket.on('pixel', ({ key, cell }) => {
   const [xStr,yStr] = key.split('_');
-  placePixelLocal(parseInt(xStr,10), parseInt(yStr,10), cell.color);
+  const x = parseInt(xStr,10);
+  const y = parseInt(yStr,10);
+  localGrid[key] = cell.color;
+  paintCell(x, y, cell.color);
 });
 
 // Meta anwenden
@@ -250,6 +287,8 @@ function applyMeta(meta) {
   if (!meta) return;
   if (meta.gridSize && meta.gridSize !== state.gridSize) {
     state.gridSize = meta.gridSize;
+    // Grid-Size hat sich geändert -> Cache invalid
+    localGrid = Object.create(null);
     computeCellSize();
     drawGridLines();
   }
@@ -277,6 +316,7 @@ requestAnimationFrame(tick);
   function applyResize() {
     computeCellSize();
     drawGridLines();
+    drawAllCellsFromCache(); // <— nach jedem echten Resize sofort wieder alles malen
     lastH = window.innerHeight;
     lastW = window.innerWidth;
   }
@@ -293,5 +333,13 @@ requestAnimationFrame(tick);
   }, { passive: true });
 })();
 
+// Optional: Beim Tab-Wechsel zurück -> sicherheitshalber neu malen
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    drawGridLines();
+    drawAllCellsFromCache();
+  }
+});
+
 // Debug
-window.placePixelLocal = placePixelLocal;
+window.placePixelLocal = setCellLocal;
