@@ -1,22 +1,54 @@
-*{box-sizing:border-box} body{margin:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#fafafa;color:#111}
+:root { color-scheme: light; }
+
+/* base */
+*{box-sizing:border-box}
+html,body{background:#fafafa;color:#111}
+body{margin:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+
 .app{max-width:1100px;margin:0 auto;padding:16px}
 header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 h1{font-size:20px;margin:0}
 .status{font-size:14px;color:#555}
-.controls,.host-panel,.palette,.board,.footer{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:12px;margin-bottom:12px}
+
+/* cards/sections */
+.controls,.host-panel,.palette,.board,.footer{
+  background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:12px;margin-bottom:12px
+}
+
+/* form controls (force light) */
 .controls .block{margin-right:12px;margin-bottom:8px}
 .controls .block label{display:block;font-size:12px;color:#555;margin-bottom:4px}
-.controls input, .controls select{padding:6px 8px;border:1px solid #ccc;border-radius:8px}
-.controls button{padding:8px 12px;border-radius:10px;border:1px solid #ccc;background:#f4f4f4;cursor:pointer}
+.controls input,.controls select{
+  padding:6px 8px;border:1px solid #ccc;border-radius:8px;
+  background:#fff;color:#111
+}
+.controls button{
+  padding:8px 12px;border-radius:10px;border:1px solid #ccc;
+  background:#f4f4f4;color:#111;cursor:pointer
+}
 .controls .inline{display:flex;align-items:center}
+
+/* host panel */
 .host-panel h2{margin-top:0}
 .host-panel .grid{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px}
 .host-panel .row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* palette */
 .palette{display:flex;align-items:center;justify-content:space-between}
 .colors{display:flex;gap:6px;flex-wrap:wrap}
 .color{width:28px;height:28px;border:1px solid #ccc;border-radius:6px;cursor:pointer}
 .color.sel{outline:2px solid #111}
+
+/* board */
 .board{position:relative;display:flex;align-items:center;justify-content:center}
-canvas{width:800px;height:800px;border:1px solid #e5e5e5;border-radius:8px;background:#fff}
-.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.6);font-size:48px;color:#222}
+canvas{
+  width:800px;height:800px;border:1px solid #e5e5e5;border-radius:8px;
+  background:#fff
+}
+.overlay{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,0.6);font-size:48px;color:#222
+}
+
+/* footer */
 .footer{display:flex;align-items:center;justify-content:space-between;font-size:14px;color:#444}
