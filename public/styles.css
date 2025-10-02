@@ -1,12 +1,17 @@
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-body {
+html, body {
+  height: 100%;
   margin: 0;
   font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   background: #fafafa;
   color: #111;
+
+  /* verhindert Back/Refresh durch Overscroll auf vielen Browsern */
+  overscroll-behavior: none;
+
+  /* erlaubt global Pinch-/Touchpad-Zoom (Canvas inkl.) */
+  touch-action: pan-x pan-y pinch-zoom;
 }
 
 .app {
@@ -44,10 +49,7 @@ h1 {
   margin-bottom: 12px;
 }
 
-.controls .block {
-  margin-right: 12px;
-  margin-bottom: 8px;
-}
+.controls .block { margin-right: 12px; margin-bottom: 8px; }
 
 .controls .block label {
   display: block;
@@ -71,14 +73,9 @@ h1 {
   cursor: pointer;
 }
 
-.controls .inline {
-  display: flex;
-  align-items: center;
-}
+.controls .inline { display: flex; align-items: center; }
 
-.host-panel h2 {
-  margin-top: 0;
-}
+.host-panel h2 { margin-top: 0; }
 
 .host-panel .grid {
   display: flex;
@@ -87,23 +84,11 @@ h1 {
   margin-bottom: 8px;
 }
 
-.host-panel .row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+.host-panel .row { display: flex; gap: 8px; flex-wrap: wrap; }
 
-.palette {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+.palette { display: flex; align-items: center; justify-content: space-between; }
 
-.colors {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
+.colors { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .color {
   width: 28px;
@@ -113,15 +98,14 @@ h1 {
   cursor: pointer;
 }
 
-.color.sel {
-  outline: 2px solid #111;
-}
+.color.sel { outline: 2px solid #111; }
 
 .board {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  overscroll-behavior: contain;
 }
 
 canvas {
@@ -130,6 +114,13 @@ canvas {
   border: 1px solid #e5e5e5;
   border-radius: 8px;
   background: #fff;
+
+  /* Canvas: Zoom & Scroll-Gesten erlauben */
+  touch-action: pan-x pan-y pinch-zoom;
+
+  /* Pixel-CANVAS bleibt beim Zoom knackig */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 .overlay {

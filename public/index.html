@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Zoom explizit erlauben (wichtig fürs Pinch-/Touchpad-Zoom auf dem Canvas) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
   <title>Canvas Wars</title>
   <link rel="stylesheet" href="styles.css">
   <style>
@@ -37,6 +38,8 @@
       display: block;
       margin: 0 auto;
       background-color: #ffffff;
+      /* Canvas darf gezoomt werden (Pinch & Touchpad) */
+      touch-action: pan-x pan-y pinch-zoom;
     }
     .board .overlay {
       position: absolute;
@@ -81,6 +84,7 @@
         <button id="btnJoin">Join</button>
       </div>
 
+      <!-- Logo bleibt unverändert -->
       <div class="brand-abs">
         <img src="hsd%20logo.png"
              alt="Hochschule Düsseldorf – Fachbereich Elektro- &amp; Informationstechnik">

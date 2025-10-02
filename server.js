@@ -6,15 +6,31 @@ import { Server } from "socket.io";
 const app = express();
 const server = http.createServer(app);
 
+// --- Socket.IO robuster konfigurieren ---
 const io = new Server(server, {
   cors: {
-    origin: "*",          // einfacher: erlaubt alle Domains
+    origin: "*",
     methods: ["GET", "POST"]
   },
-  transports: ["websocket"], // direkte WebSocket-Verbindung
+  // Reine WebSocket-Transporte funktionieren auf Render gut.
+  // (Wenn du irgendwo hinter Proxies Probleme hast, kannst du "polling" ergänzen.)
+  transports: ["websocket"],
+
+  // Performance & Stabilität
   perMessageDeflate: false,
-  pingInterval: 10000,
-  pingTimeout: 20000
+
+  // WICHTIG: Großzügigere Toleranzen für Mobile (Scroll/Tab-Wechsel/Adressleiste)
+  pingInterval: 25000,          // Standard: 25s Ping
+  pingTimeout: 60000,           // 60s Toleranz statt 20s
+  connectTimeout: 60000,        // 60s Verbindungsaufbau-Toleranz
+
+  // Automatische Verbindungs-Wiederherstellung (Socket.IO v4)
+  connectionStateRecovery: {
+    // Zeitfenster, in dem ein Client „nahtlos“ wieder andocken darf
+    maxDisconnectionDuration: 2 * 60 * 1000,
+    // beschleunigt Recovery, da wir keine Middlewares nutzen
+    skipMiddlewares: true
+  }
 });
 
 // Healthcheck (für Render)
@@ -33,7 +49,7 @@ io.on("connection", (socket) => {
   socket.on("join", ({ pin, name, team }) => {
     if (!pin || !name || !team) return;
     joinedPin = String(pin);
-    playerId = Math.random().toString(36).slice(2);
+    playerId = playerId || Math.random().toString(36).slice(2);
 
     if (!sessions[joinedPin]) {
       sessions[joinedPin] = {
@@ -116,6 +132,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    // Bei echter Trennung Spieler austragen:
     if (joinedPin && playerId && sessions[joinedPin]) {
       delete sessions[joinedPin].players[playerId];
       io.to(joinedPin).emit("players", sessions[joinedPin].players);
@@ -123,6 +140,7 @@ io.on("connection", (socket) => {
   });
 });
 
+// --- Helper ---
 function meta(pin) {
   const s = sessions[pin];
   if (!s) return null;

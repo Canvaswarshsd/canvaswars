@@ -211,6 +211,20 @@ $('btnExport').addEventListener('click', () => {
 socket.on('connect', () => { conn.textContent = 'OK'; });
 socket.on('disconnect', () => { conn.textContent = '—'; });
 
+// --- Auto-Rejoin: bei Reconnect automatisch wieder der Session joinen
+// (verhindert "aus der Lobby fliegen" nach kurzen Unterbrechungen)
+socket.io.on('reconnect', () => {
+  conn.textContent = 'OK';
+  if (state.pin && state.name) {
+    socket.emit('join', {
+      pin: state.pin,
+      name: state.name,
+      team: state.team,
+      isHost: state.isHost
+    });
+  }
+});
+
 socket.on('snapshot', (data = {}) => {
   const { meta, grid } = data;
   applyMeta(meta);
@@ -270,11 +284,10 @@ requestAnimationFrame(tick);
   }
 
   window.addEventListener('resize', () => {
-    // Viele Mobile-"Resizes" kommen nur durch Adressleisten-Animation
     const dh = Math.abs(window.innerHeight - lastH);
     const dw = Math.abs(window.innerWidth  - lastW);
 
-    // winzige Änderungen ignorieren
+    // Mini-Resizes (Adressleiste ein/aus) ignorieren
     if (dh < 80 && dw < 30) return;
 
     clearTimeout(resizeTimer);
