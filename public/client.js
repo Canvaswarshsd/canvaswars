@@ -17,49 +17,6 @@ const overlay = $('overlay');
 const canvas = $('canvas');
 const ctx = canvas.getContext('2d');
 
-// --- Mobile: Scroll blocken, aber Pixel setzen auf Tap ---
-(function setupMobileTouch(el){
-  if (!el) return;
-
-  let touching = false;
-
-  el.addEventListener('touchstart', () => {
-    touching = true;
-    // NICHT preventDefault hier -> sonst kein Klick mehr
-  }, { passive: true });
-
-  el.addEventListener('touchmove', (e) => {
-    // nur 1-Finger scroll blocken, damit kein Pull-to-Refresh
-    if (touching && e.touches.length === 1) {
-      e.preventDefault();
-    }
-  }, { passive: false });
-
-  el.addEventListener('touchend', (e) => {
-    touching = false;
-    if (!state.joined) return;
-    if (state.status !== 'running') return;
-
-    const now = Date.now();
-    if (state.lastPlaceAt && now - state.lastPlaceAt < state.cooldownSec * 1000) return;
-
-    const t = e.changedTouches && e.changedTouches[0];
-    if (!t) return;
-
-    const { x, y } = canvasXY({ clientX: t.clientX, clientY: t.clientY });
-    if (x < 0 || y < 0 || x >= state.gridSize || y >= state.gridSize) return;
-
-    state.lastPlaceAt = now;
-    placePixelLocal(x, y, state.color);
-    socket.emit('placePixel', { pin: state.pin, x, y, color: state.color, team: state.team });
-  }, { passive: true });
-
-  // einige Browser mappen Scroll als Wheel
-  el.addEventListener('wheel', (e) => {
-    if (e.ctrlKey || e.deltaY !== 0) e.preventDefault();
-  }, { passive: false });
-})(canvas);
-
 // Overlay helpers
 function showOverlay(text) {
   overlay.textContent = text || '';
@@ -317,7 +274,7 @@ requestAnimationFrame(tick);
     const dh = Math.abs(window.innerHeight - lastH);
     const dw = Math.abs(window.innerWidth  - lastW);
 
-    // winzige Änderungen ignorieren (Schwellen anpassbar)
+    // winzige Änderungen ignorieren
     if (dh < 80 && dw < 30) return;
 
     clearTimeout(resizeTimer);
