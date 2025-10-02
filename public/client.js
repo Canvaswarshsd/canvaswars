@@ -44,6 +44,9 @@ let state = {
   status: 'lobby'
 };
 
+// Lokaler Grid-Buffer: speichert Farbe pro Zelle (Map, damit auch „sparsam“ geht)
+let gridState = new Map(); // key "x_y" -> color string
+
 const PALETTE = [
   '#000000','#d32f2f','#1976d2','#388e3c',
   '#fbc02d','#7b1fa2','#5d4037','#455a64','#ffffff'
@@ -71,26 +74,31 @@ function buildPalette() {
   cooldownLabel.style.userSelect = 'none';
 }
 
-// Canvas dimensionieren
-function computeCellSize() {
-  const rect = canvas.getBoundingClientRect();
-  const pxPerCell = Math.max(1, Math.floor(rect.width / state.gridSize));
+// Canvas einmalig/intervallarm dimensionieren
+function computeCellSize(initial = false) {
+  // Ziel: interne Auflösung NUR setzen, wenn nötig (z.B. bei Gridgrößenwechsel)
+  const pxPerCell = Math.max(1, Math.floor(window.innerWidth / (state.gridSize + 4))); // leichte Randannahme
   state.cellSize = pxPerCell;
 
   const targetW = state.gridSize * pxPerCell;
   const targetH = state.gridSize * pxPerCell;
 
+  // CSS-Größe darf geändert werden; interne Breite/Höhe (canvas.width/height)
+  // NUR wenn initial oder Gridgröße geändert wurde.
   canvas.style.width = targetW + 'px';
   canvas.style.height = targetH + 'px';
 
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width  = Math.round(targetW * dpr);
-  canvas.height = Math.round(targetH * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (initial) {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = Math.round(targetW * dpr);
+    canvas.height = Math.round(targetH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // scale für „scharf“
+  }
 }
 
 function drawGridLines() {
   const { gridSize, cellSize } = state;
+  // NICHT canvas.width/height anfassen!
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0,0,gridSize*cellSize,gridSize*cellSize);
@@ -114,6 +122,19 @@ function placePixelLocal(x,y,color) {
   const s = state.cellSize;
   ctx.fillStyle = color;
   ctx.fillRect(x*s+1, y*s+1, s-1, s-1);
+  gridState.set(`${x}_${y}`, color); // <-- lokaler Buffer aktualisieren
+}
+
+function drawAll() {
+  // Gitter + alle gecachten Zellen
+  drawGridLines();
+  for (const [key, color] of gridState.entries()) {
+    const [xStr, yStr] = key.split('_');
+    const x = parseInt(xStr, 10), y = parseInt(yStr, 10);
+    const s = state.cellSize;
+    ctx.fillStyle = color;
+    ctx.fillRect(x*s+1, y*s+1, s-1, s-1);
+  }
 }
 
 function canvasXY(evt) {
@@ -213,33 +234,39 @@ socket.on('disconnect', () => { conn.textContent = '—'; });
 
 socket.on('snapshot', (data = {}) => {
   const { meta, grid } = data;
-  applyMeta(meta);
-  computeCellSize();
-  drawGridLines();
+  applyMeta(meta, /*fromSnapshot*/true);
+
+  // Lokalen Buffer setzen
+  gridState.clear();
   if (grid) {
     for (const key in grid) {
-      const [xStr,yStr] = key.split('_');
       const cell = grid[key];
-      placePixelLocal(parseInt(xStr,10), parseInt(yStr,10), cell.color);
+      gridState.set(key, cell.color);
     }
   }
+  drawAll();
   state.joined = true;
 });
 
-socket.on('meta', (meta) => { applyMeta(meta); });
-socket.on('gridReset', () => { drawGridLines(); });
+socket.on('meta', (meta) => { applyMeta(meta, /*fromSnapshot*/false); });
+socket.on('gridReset', () => {
+  gridState.clear();
+  drawAll();
+});
 socket.on('pixel', ({ key, cell }) => {
+  gridState.set(key, cell.color);
   const [xStr,yStr] = key.split('_');
   placePixelLocal(parseInt(xStr,10), parseInt(yStr,10), cell.color);
 });
 
 // Meta anwenden
-function applyMeta(meta) {
+function applyMeta(meta, fromSnapshot = false) {
   if (!meta) return;
+  let gridChanged = false;
+
   if (meta.gridSize && meta.gridSize !== state.gridSize) {
     state.gridSize = meta.gridSize;
-    computeCellSize();
-    drawGridLines();
+    gridChanged = true;
   }
   if (typeof meta.cooldownSec === 'number') state.cooldownSec = meta.cooldownSec;
   state.endsAt = meta.endsAt || null;
@@ -247,19 +274,42 @@ function applyMeta(meta) {
   statusLbl.textContent = state.status;
   if (state.status === 'running') hideOverlay();
   if (state.status === 'ended')   showOverlay('Time up!');
+
+  // Canvas-Auflösung NUR neu setzen, wenn Gridgröße geändert:
+  if (gridChanged) {
+    computeCellSize(true); // interne Auflösung neu
+    drawAll();             // und sofort alles aus Buffer wiederherstellen
+  } else if (fromSnapshot) {
+    // bei erstem Snapshot einmalig initialisieren
+    computeCellSize(true);
+  }
 }
 
 // init
 buildPalette();
-computeCellSize();
-drawGridLines();
+computeCellSize(true);
+drawAll();
 hideOverlay();
 requestAnimationFrame(tick);
 
-// Re-dimensionieren
+// Re-dimensionieren: KEIN canvas.width/height mehr hier!
+// Nur bei echten, großen Änderungen neu zeichnen.
+let resizeRaf;
+let lastW = window.innerWidth, lastH = window.innerHeight;
 window.addEventListener('resize', () => {
-  computeCellSize();
-  drawGridLines();
+  const dW = Math.abs(window.innerWidth  - lastW);
+  const dH = Math.abs(window.innerHeight - lastH);
+  lastW = window.innerWidth; lastH = window.innerHeight;
+
+  // Mini-Viewport-Änderungen (Adressleiste Mobile) ignorieren
+  if (dW === 0 && dH < 120) return;
+
+  cancelAnimationFrame(resizeRaf);
+  resizeRaf = requestAnimationFrame(() => {
+    // Optional: nur CSS-Größe anpassen, interne Auflösung bleibt -> kein Clear
+    computeCellSize(false);
+    drawAll();
+  });
 });
 
 // Debug
