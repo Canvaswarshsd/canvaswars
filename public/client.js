@@ -17,14 +17,45 @@ const overlay = $('overlay');
 const canvas = $('canvas');
 const ctx = canvas.getContext('2d');
 
-// --- Mobile: Scroll/Touch auf Canvas nicht an die Seite durchreichen ---
-(function setupMobileScrollGuards(el){
+// --- Mobile: Scroll blocken, aber Pixel setzen auf Tap ---
+(function setupMobileTouch(el){
   if (!el) return;
-  // verhindert Scrollen / Pull-to-Refresh während Interaktion mit dem Canvas
-  el.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
-  el.addEventListener('touchmove',  e => e.preventDefault(), { passive: false });
-  // einige Browser mappen auch Wheel-Gesten
-  el.addEventListener('wheel', e => {
+
+  let touching = false;
+
+  el.addEventListener('touchstart', () => {
+    touching = true;
+    // NICHT preventDefault hier -> sonst kein Klick mehr
+  }, { passive: true });
+
+  el.addEventListener('touchmove', (e) => {
+    // nur 1-Finger scroll blocken, damit kein Pull-to-Refresh
+    if (touching && e.touches.length === 1) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  el.addEventListener('touchend', (e) => {
+    touching = false;
+    if (!state.joined) return;
+    if (state.status !== 'running') return;
+
+    const now = Date.now();
+    if (state.lastPlaceAt && now - state.lastPlaceAt < state.cooldownSec * 1000) return;
+
+    const t = e.changedTouches && e.changedTouches[0];
+    if (!t) return;
+
+    const { x, y } = canvasXY({ clientX: t.clientX, clientY: t.clientY });
+    if (x < 0 || y < 0 || x >= state.gridSize || y >= state.gridSize) return;
+
+    state.lastPlaceAt = now;
+    placePixelLocal(x, y, state.color);
+    socket.emit('placePixel', { pin: state.pin, x, y, color: state.color, team: state.team });
+  }, { passive: true });
+
+  // einige Browser mappen Scroll als Wheel
+  el.addEventListener('wheel', (e) => {
     if (e.ctrlKey || e.deltaY !== 0) e.preventDefault();
   }, { passive: false });
 })(canvas);
@@ -293,11 +324,6 @@ requestAnimationFrame(tick);
     resizeTimer = setTimeout(applyResize, 200);
   }, { passive: true });
 })();
-
-// --- (Optional, sehr leicht) Keepalive, falls Server Idle-Timeouts hat ---
-setInterval(() => {
-  try { socket.emit('ping', Date.now()); } catch (_) {}
-}, 25000);
 
 // Debug
 window.placePixelLocal = placePixelLocal;
