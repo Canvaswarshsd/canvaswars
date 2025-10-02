@@ -208,13 +208,9 @@ $('btnExport').addEventListener('click', () => {
 });
 
 // Socket handlers
-socket.on('connect', () => { conn.textContent = 'OK'; });
-socket.on('disconnect', () => { conn.textContent = '—'; });
-
-// --- Auto-Rejoin: bei Reconnect automatisch wieder der Session joinen
-// (verhindert "aus der Lobby fliegen" nach kurzen Unterbrechungen)
-socket.io.on('reconnect', () => {
+socket.on('connect', () => {
   conn.textContent = 'OK';
+  // WICHTIG: nach jeder (Neu-)Verbindung automatisch wieder joinen
   if (state.pin && state.name) {
     socket.emit('join', {
       pin: state.pin,
@@ -224,6 +220,8 @@ socket.io.on('reconnect', () => {
     });
   }
 });
+
+socket.on('disconnect', () => { conn.textContent = '—'; });
 
 socket.on('snapshot', (data = {}) => {
   const { meta, grid } = data;
