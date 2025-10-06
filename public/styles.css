@@ -39,8 +39,9 @@ h1 { font-size: 20px; margin: 0; }
 .controls {
   display: grid;
   grid-template-columns: minmax(320px, 520px) 1fr; /* links: Felder, rechts: Logo */
-  gap: 16px 24px;
-  align-items: start;
+  row-gap: 16px;
+  column-gap: 12px;           /* kleiner Abstand: Logo beginnt direkt hinter den Feldern */
+  align-items: stretch;       /* rechte Spalte über volle Höhe füllen */
 }
 
 /* alle Form-Blöcke links halten */
@@ -65,6 +66,12 @@ h1 { font-size: 20px; margin: 0; }
   border-radius: 8px;
 }
 
+/* Eingabefelder links nutzen die volle Spaltenbreite */
+.controls input[type="text"],
+.controls select {
+  width: 100%;
+}
+
 .controls button {
   padding: 8px 12px;
   border-radius: 10px;
@@ -75,26 +82,22 @@ h1 { font-size: 20px; margin: 0; }
 
 .controls .inline { display: flex; align-items: center; gap: 8px; }
 
-/* ===== Logo-Fläche rechts: füllt restlichen Kasten komplett =====
-   Wir verwenden die Box als "Background-Image", damit wirklich
-   keine weißen Innenränder entstehen und das Bild den Bereich
-   pixelgenau ausfüllt. */
+/* ===== Logo-Fläche rechts: füllt restlichen Kasten komplett ===== */
 .brand-abs {
   grid-column: 2;            /* rechte Spalte */
   grid-row: 1 / -1;          /* gesamte Höhe neben den Feldern */
   align-self: stretch;       /* volle Höhe */
   min-height: 200px;
-  border-radius: 12px;
+  border-radius: 10px;       /* exakt wie der äußere Kasten */
   overflow: hidden;          /* nichts ragt raus */
   background-image: url("hsd%20logo.png");
   background-position: center;
   background-size: cover;    /* Kasten vollständig ausfüllen */
   background-repeat: no-repeat;
-  box-shadow: none;          /* keine weißen Kanten durch Schatten */
+  box-shadow: none;
 }
 
-/* Falls im HTML ein <img> innerhalb .brand-abs steckt, ausblenden,
-   damit nur die Hintergrundgrafik sichtbar ist. */
+/* Falls noch ein <img> im HTML steckt: ausblenden */
 .brand-abs img { display: none; }
 
 /* kleiner Screens: Logo unter die Felder */
