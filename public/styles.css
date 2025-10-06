@@ -42,7 +42,7 @@ h1 { font-size: 20px; margin: 0; }
 /* ========== FORM + LOGO als Grid ========== */
 .controls {
   display: grid;
-  grid-template-columns: minmax(320px, 520px) 1fr; /* links: Eingabefelder, rechts: Logo */
+  grid-template-columns: minmax(320px, 520px) 400px; /* links: Eingabefelder, rechts: Logo */
   gap: 16px 24px;
   align-items: stretch; /* volle Höhe für beide Spalten */
 }
