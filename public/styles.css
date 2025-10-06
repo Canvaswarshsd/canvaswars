@@ -11,7 +11,11 @@ html, body {
   touch-action: pan-x pan-y pinch-zoom;
 }
 
-.app { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+}
 
 header {
   display: flex;
@@ -20,8 +24,15 @@ header {
   margin-bottom: 12px;
 }
 
-h1 { font-size: 20px; margin: 0; }
-.status { font-size: 14px; color: #555; }
+h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.status {
+  font-size: 14px;
+  color: #555;
+}
 
 .controls,
 .host-panel,
@@ -35,22 +46,7 @@ h1 { font-size: 20px; margin: 0; }
   margin-bottom: 12px;
 }
 
-/* ========== FORM + LOGO als Grid ========== */
-.controls {
-  display: grid;
-  grid-template-columns: minmax(320px, 520px) 1fr; /* links: Felder, rechts: Logo */
-  row-gap: 16px;
-  column-gap: 12px;           /* kleiner Abstand: Logo beginnt direkt hinter den Feldern */
-  align-items: stretch;       /* rechte Spalte über volle Höhe füllen */
-}
-
-/* alle Form-Blöcke links halten */
-.controls > .block,
-.controls > .inline {
-  grid-column: 1;
-}
-
-.controls .block { margin-right: 0; margin-bottom: 8px; }
+.controls .block { margin-right: 12px; margin-bottom: 8px; }
 
 .controls .block label {
   display: block;
@@ -66,12 +62,6 @@ h1 { font-size: 20px; margin: 0; }
   border-radius: 8px;
 }
 
-/* Eingabefelder links nutzen die volle Spaltenbreite */
-.controls input[type="text"],
-.controls select {
-  width: 100%;
-}
-
 .controls button {
   padding: 8px 12px;
   border-radius: 10px;
@@ -80,40 +70,8 @@ h1 { font-size: 20px; margin: 0; }
   cursor: pointer;
 }
 
-.controls .inline { display: flex; align-items: center; gap: 8px; }
+.controls .inline { display: flex; align-items: center; }
 
-/* ===== Logo-Fläche rechts: füllt restlichen Kasten komplett ===== */
-.brand-abs {
-  grid-column: 2;            /* rechte Spalte */
-  grid-row: 1 / -1;          /* gesamte Höhe neben den Feldern */
-  align-self: stretch;       /* volle Höhe */
-  min-height: 200px;
-  border-radius: 10px;       /* exakt wie der äußere Kasten */
-  overflow: hidden;          /* nichts ragt raus */
-  background-image: url("hsd%20logo.png");
-  background-position: center;
-  background-size: cover;    /* Kasten vollständig ausfüllen */
-  background-repeat: no-repeat;
-  box-shadow: none;
-}
-
-/* Falls noch ein <img> im HTML steckt: ausblenden */
-.brand-abs img { display: none; }
-
-/* kleiner Screens: Logo unter die Felder */
-@media (max-width: 900px) {
-  .controls {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .brand-abs {
-    grid-column: 1;
-    grid-row: auto;
-    min-height: 160px;
-  }
-}
-
-/* ========== Restlayout ========== */
 .host-panel h2 { margin-top: 0; }
 
 .host-panel .grid {
@@ -176,3 +134,38 @@ canvas {
   font-size: 14px;
   color: #444;
 }
+
+/* =========================================================
+   LOGO OBEN RECHTS
+   ========================================================= */
+.brand-abs {
+  position: absolute;
+  top: -10px;           
+  right: 40px;          
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  max-width: 550px;     
+  width: 38vw;          
+  min-width: 320px;     
+  z-index: 10;
+}
+
+.brand-abs img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.25));
+}
+
+/* Optional: Bei sehr kleinen Bildschirmen Logo automatisch kleiner machen */
+@media (max-width: 900px) {
+  .brand-abs {
+    right: 20px;
+    top: 0;
+    width: 60vw;
+    max-width: 400px;
+  }
+}
+
