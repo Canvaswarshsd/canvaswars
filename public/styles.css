@@ -91,7 +91,8 @@ h1 { font-size: 20px; margin: 0; }
   background-size: 100% 100%; /* Füllt gesamte Box – keine weißen Ränder */
   background-repeat: no-repeat;
   box-shadow: none;
-  min-height: 220px;         /* etwas höher für mehr Präsenz */
+  min-height: 220px;   /* etwas höher für mehr Präsenz */
+  min-width: 400px;
 }
 
 /* falls ein <img> im HTML liegt, ausblenden */
