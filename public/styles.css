@@ -35,13 +35,10 @@ h1 { font-size: 20px; margin: 0; }
   margin-bottom: 12px;
 }
 
-/* ========== FORM + LOGO LAYOUT (Grid) ========== */
-/* Die Eingabefelder stehen links in Spalte 1.
-   Das Logo ist NICHT dahinter, sondern füllt die rechte Spalte vollständig,
-   startet also "nach" den Feldern und füllt den restlichen Kasten. */
+/* ========== FORM + LOGO als Grid ========== */
 .controls {
   display: grid;
-  grid-template-columns: minmax(320px, 520px) 1fr; /* links Felder, rechts Logo */
+  grid-template-columns: minmax(320px, 520px) 1fr; /* links: Felder, rechts: Logo */
   gap: 16px 24px;
   align-items: start;
 }
@@ -49,7 +46,7 @@ h1 { font-size: 20px; margin: 0; }
 /* alle Form-Blöcke links halten */
 .controls > .block,
 .controls > .inline {
-  grid-column: 1; /* linke Spalte */
+  grid-column: 1;
 }
 
 .controls .block { margin-right: 0; margin-bottom: 8px; }
@@ -78,25 +75,29 @@ h1 { font-size: 20px; margin: 0; }
 
 .controls .inline { display: flex; align-items: center; gap: 8px; }
 
-/* ===== Logo-Bereich rechts (ersetzt .brand-abs absolute Position) ===== */
+/* ===== Logo-Fläche rechts: füllt restlichen Kasten komplett =====
+   Wir verwenden die Box als "Background-Image", damit wirklich
+   keine weißen Innenränder entstehen und das Bild den Bereich
+   pixelgenau ausfüllt. */
 .brand-abs {
-  grid-column: 2;        /* rechte Spalte */
-  grid-row: 1 / -1;      /* über die volle Höhe der linken Inhalte spannen */
-  align-self: stretch;   /* gesamte Höhe füllen */
+  grid-column: 2;            /* rechte Spalte */
+  grid-row: 1 / -1;          /* gesamte Höhe neben den Feldern */
+  align-self: stretch;       /* volle Höhe */
+  min-height: 200px;
   border-radius: 12px;
-  overflow: hidden;      /* kein Überlappen */
-  box-shadow: 0 1px 3px rgba(0,0,0,.12);
-  min-height: 160px;     /* etwas Mindesthöhe, falls Form sehr kurz ist */
+  overflow: hidden;          /* nichts ragt raus */
+  background-image: url("hsd%20logo.png");
+  background-position: center;
+  background-size: cover;    /* Kasten vollständig ausfüllen */
+  background-repeat: no-repeat;
+  box-shadow: none;          /* keine weißen Kanten durch Schatten */
 }
 
-.brand-abs img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;     /* füllt den Kasten ohne Verzerrung, schneidet ggf. minimal */
-}
+/* Falls im HTML ein <img> innerhalb .brand-abs steckt, ausblenden,
+   damit nur die Hintergrundgrafik sichtbar ist. */
+.brand-abs img { display: none; }
 
-/* kleiner Screens: Logo unter die Felder (volle Breite) */
+/* kleiner Screens: Logo unter die Felder */
 @media (max-width: 900px) {
   .controls {
     grid-template-columns: 1fr;
@@ -105,11 +106,11 @@ h1 { font-size: 20px; margin: 0; }
   .brand-abs {
     grid-column: 1;
     grid-row: auto;
-    min-height: 140px;
+    min-height: 160px;
   }
 }
 
-/* ========== Host/Palette/Board/Etc. ========== */
+/* ========== Restlayout ========== */
 .host-panel h2 { margin-top: 0; }
 
 .host-panel .grid {
