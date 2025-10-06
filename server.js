@@ -40,11 +40,13 @@ io.on("connection", (socket) => {
     if (!pin || !name || !team) return;
     const p = String(pin);
 
+    // STABILE Geräte-ID verwenden (vom Client via localStorage übergeben)
     const playerId =
       (clientId && String(clientId)) ||
       socket.data.playerId ||
       Math.random().toString(36).slice(2);
 
+    // Session anlegen
     if (!sessions[p]) {
       sessions[p] = {
         status: "lobby",
@@ -53,28 +55,42 @@ io.on("connection", (socket) => {
         createdAt: Date.now(),
         grid: {},
         players: {},
-        hostId: null, // genau 1 Host pro Lobby
+        hostId: null, // genau 1 Host pro Lobby (gebunden an playerId)
       };
     }
     const s = sessions[p];
 
-    // Host-Regel
-    if (isHost) {
-      if (s.hostId && s.hostId !== playerId) {
+    // Host-Logik:
+    // - Wenn bereits derselbe Host (gleiche playerId) existiert, Host-Rechte automatisch wiederherstellen
+    // - Andernfalls: nur Host setzen, wenn keiner existiert
+    const isSameHost = s.hostId && s.hostId === playerId;
+    let wantHost = !!isHost || isSameHost;
+
+    if (wantHost) {
+      if (s.hostId && !isSameHost) {
         socket.emit("hostDenied", "In dieser Lobby gibt es bereits einen Host.");
-        isHost = false;
+        wantHost = false;
       } else {
-        s.hostId = playerId;
+        s.hostId = playerId; // Host (re)claimen
+        wantHost = true;
       }
     }
 
-    s.players[playerId] = { name, team, isHost: s.hostId === playerId, updatedAt: Date.now() };
+    // Spieler eintragen
+    s.players[playerId] = {
+      name,
+      team,
+      isHost: s.hostId === playerId,
+      updatedAt: Date.now()
+    };
 
+    // Raum + Socket-Metadaten
     if (socket.data.pin && socket.data.pin !== p) socket.leave(socket.data.pin);
     socket.join(p);
     socket.data.pin = p;
     socket.data.playerId = playerId;
 
+    // geplante Entfernung abbrechen (Rejoin)
     const rmKey = `${p}:${playerId}`;
     const t = pendingRemoval.get(rmKey);
     if (t) {
@@ -82,8 +98,12 @@ io.on("connection", (socket) => {
       pendingRemoval.delete(rmKey);
     }
 
+    // Snapshot/Spielerliste an Client
     socket.emit("snapshot", snapshot(p));
     io.to(p).emit("players", s.players);
+
+    // Host-UI explizit bestätigen
+    if (s.hostId === playerId) socket.emit("hostGranted");
   });
 
   // --- Host-only Aktionen ---
@@ -174,7 +194,7 @@ io.on("connection", (socket) => {
         if (x < 0 || y < 0 || x >= limit || y >= limit) continue;
         const k = `${x}_${y}`;
         if (s.grid[k]) {
-          delete s.grid[k];     // Zelle wirklich entfernen (weiß wird Hintergrund)
+          delete s.grid[k]; // Zelle leeren (weiß = Hintergrund)
           keys.push(k);
         }
       }
@@ -184,7 +204,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // --- Platzieren von Pixeln ---
+  // --- Pixel setzen ---
   socket.on("placePixel", ({ pin, x, y, color, team }) => {
     if (!pin) return;
     const p = String(pin);
@@ -210,13 +230,11 @@ io.on("connection", (socket) => {
     const rmKey = `${p}:${playerId}`;
     if (pendingRemoval.has(rmKey)) return;
 
+    // WICHTIG: hostId NICHT löschen – Host bleibt reserviert für dieses Gerät.
     const timeoutId = setTimeout(() => {
       const sess = sessions[p];
       if (!sess) return;
 
-      if (sess.hostId === playerId) {
-        sess.hostId = null; // Host-Platz wird frei
-      }
       delete sess.players[playerId];
       pendingRemoval.delete(rmKey);
       io.to(p).emit("players", sess.players);
@@ -253,3 +271,4 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Canvas Wars server listening on port ${PORT}`);
 });
+

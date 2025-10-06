@@ -18,14 +18,24 @@ const canvas = $('canvas');
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false; // scharfe Pixel
 
+// === stabile Geräte-ID (für Host-Wiedererkennung) ===
+const CLIENT_ID = (() => {
+  let id = localStorage.getItem('clientId');
+  if (!id) {
+    id = 'c_' + Math.random().toString(36).slice(2);
+    localStorage.setItem('clientId', id);
+  }
+  return id;
+})();
+
 // --- Sichtbarkeit des Gitters steuern ---
-const SHOW_GRID = false; // false = Gitter aus
+const SHOW_GRID = false; // false = Gitter unsichtbar
 
 // --- Moderations-UI ---
 const btnEraser = $('btnEraser');
 const eraseSizeInput = $('eraseSize');
 
-// --- Lokaler Grid-Cache: nach Resize/Scroll sofort neu malen ---
+// --- Lokaler Grid-Cache: sorgt dafür, dass wir nach Resize alles neu malen können ---
 let localGrid = Object.create(null);
 
 // Overlay helpers
@@ -62,7 +72,7 @@ const PALETTE = [
   '#fbc02d','#7b1fa2','#5d4037','#455a64','#ffffff'
 ];
 
-// Palette
+// Palette + Moderation UI
 function buildPalette() {
   colorsDiv.innerHTML = '';
   PALETTE.forEach(c => {
@@ -83,7 +93,6 @@ function buildPalette() {
   }
   cooldownLabel.style.userSelect = 'none';
 
-  // Moderations-Controls
   if (btnEraser) {
     btnEraser.addEventListener('click', () => {
       if (!state.isHost) { alert('Nur Host darf den Radierer benutzen.'); return; }
@@ -132,15 +141,8 @@ function drawGridLines() {
   ctx.lineWidth = 1;
   for (let i=0;i<=gridSize;i++) {
     const p = i*cellSize + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(0, p);
-    ctx.lineTo(gridSize*cellSize, p);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(p, 0);
-    ctx.lineTo(p, gridSize*cellSize);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(gridSize*cellSize, p); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, gridSize*cellSize); ctx.stroke();
   }
 }
 
@@ -223,7 +225,7 @@ function join() {
   hostPanel.hidden = !isHost;
   if (btnEraser) btnEraser.disabled = !isHost;
   sessionLbl.textContent = pin;
-  socket.emit('join', { pin, name, team, isHost });
+  socket.emit('join', { pin, name, team, isHost, clientId: CLIENT_ID });
 }
 
 function createSession() {
@@ -257,7 +259,6 @@ canvas.addEventListener('click', (evt) => {
 
   const now = Date.now();
   if (state.lastPlaceAt && now - state.lastPlaceAt < state.cooldownSec*1000) return;
-
   if (x < 0 || y < 0 || x >= state.gridSize || y >= state.gridSize) return;
 
   state.lastPlaceAt = now;
@@ -284,18 +285,20 @@ $('btnExport').addEventListener('click', () => {
 // Socket handlers
 socket.on('connect', () => {
   conn.textContent = 'OK';
-  // Auto-Rejoin
+  // Auto-Rejoin (mit derselben clientId)
   if (state.pin && state.name) {
     socket.emit('join', {
       pin: state.pin,
       name: state.name,
       team: state.team,
-      isHost: state.isHost
+      isHost: state.isHost,
+      clientId: CLIENT_ID
     });
   }
 });
 socket.on('disconnect', () => { conn.textContent = '—'; });
 
+// Host-Rückmeldungen
 socket.on('hostDenied', (msg) => {
   state.isHost = false;
   const isHostChk = document.getElementById('isHost');
@@ -311,12 +314,17 @@ socket.on('hostDenied', (msg) => {
 socket.on('hostRequired', (msg) => {
   alert(msg || 'Nur der Host darf diese Aktion ausführen.');
 });
+socket.on('hostGranted', () => {
+  state.isHost = true;
+  if (hostPanel) hostPanel.hidden = false;
+  if (btnEraser) btnEraser.disabled = false;
+});
 
 socket.on('snapshot', (data = {}) => {
   const { meta, grid } = data;
   applyMeta(meta);
 
-  // Cache aus Snapshot füllen
+  // Cache neu aus Snapshot
   localGrid = Object.create(null);
   if (grid) {
     for (const key in grid) {
@@ -334,11 +342,13 @@ socket.on('snapshot', (data = {}) => {
 
 socket.on('meta', (meta) => { applyMeta(meta); });
 
+// Bei Grid-Reset: Cache leeren + neu zeichnen
 socket.on('gridReset', () => {
   localGrid = Object.create(null);
   drawGridLines();
 });
 
+// Pixel & Erase vom Server
 socket.on('pixel', ({ key, cell }) => {
   const [xStr,yStr] = key.split('_');
   const x = parseInt(xStr,10);
@@ -346,8 +356,6 @@ socket.on('pixel', ({ key, cell }) => {
   localGrid[key] = cell.color;
   paintCell(x, y, cell.color);
 });
-
-// Vom Server gelöschte Zellen (Radierer)
 socket.on('erase', ({ keys = [] }) => {
   for (const k of keys) {
     const [xs, ys] = k.split('_');
@@ -405,7 +413,7 @@ requestAnimationFrame(tick);
   }, { passive: true });
 })();
 
-// Beim Zurückkehren in den Tab sicher neu malen
+// Optional: Beim Tab-Wechsel zurück -> sicherheitshalber neu malen
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     drawGridLines();

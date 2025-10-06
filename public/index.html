@@ -2,52 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <!-- Immer Desktop-Darstellung: feste Layout-Breite -->
+  <!-- Immer Desktop-Darstellung -->
   <meta name="viewport" content="width=1100, user-scalable=yes">
   <title>Canvas Wars</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    /* Logo/Branding immer oben rechts (keine Mobile-Umsortierung) */
     .controls { position: relative; }
-    .brand-abs {
-      position: absolute;
-      top: 20px;
-      right: 24px;
-      display: block;
-      max-width: 550px;
-    }
-    .brand-abs img {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
+    .brand-abs { position: absolute; top: 20px; right: 24px; display: block; max-width: 550px; }
+    .brand-abs img { display: block; width: 100%; height: auto; }
 
-    /* Board-Container */
-    .board {
-      background-color: #2b2b2b;
-      padding: 20px;
-      border-radius: 10px;
-      position: relative;
-    }
+    .board { background-color: #2b2b2b; padding: 20px; border-radius: 10px; position: relative; }
+    .board canvas { display: block; margin: 0 auto; background-color: #ffffff; touch-action: pan-x pan-y pinch-zoom; }
+    .board .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: clamp(24px, 5vw, 48px); color: #333; pointer-events: none; }
 
-    /* Canvas mittig, Zoom erlaubt */
-    .board canvas {
-      display: block;
-      margin: 0 auto;
-      background-color: #ffffff;
-      touch-action: pan-x pan-y pinch-zoom;
-    }
-
-    .board .overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: clamp(24px, 5vw, 48px);
-      color: #333;
-      pointer-events: none;
-    }
+    .mod-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .mod-tools button { padding:8px 12px; border-radius:10px; border:1px solid #ccc; background:#f4f4f4; cursor:pointer; }
+    .mod-tools input[type="number"] { width:64px; padding:6px 8px; border:1px solid #ccc; border-radius:8px; }
   </style>
 </head>
 <body>
@@ -81,10 +51,8 @@
         <button id="btnJoin">Join</button>
       </div>
 
-      <!-- Logo bleibt unverändert oben rechts -->
       <div class="brand-abs">
-        <img src="hsd%20logo.png"
-             alt="Hochschule Düsseldorf – Fachbereich Elektro- &amp; Informationstechnik">
+        <img src="hsd%20logo.png" alt="Hochschule Düsseldorf – Fachbereich Elektro- &amp; Informationstechnik">
       </div>
     </section>
 
@@ -115,6 +83,11 @@
 
     <section class="palette">
       <div class="colors" id="colors"></div>
+      <!-- Moderations-Tools -->
+      <div class="mod-tools">
+        <button id="btnEraser" type="button" disabled>Eraser: OFF</button>
+        <label>Size <input id="eraseSize" type="number" min="1" max="25" value="3"></label>
+      </div>
       <div id="cooldownLabel">Cooldown: ready</div>
     </section>
 
@@ -129,7 +102,6 @@
     </section>
   </div>
 
-  <!-- Socket.IO-Client wird vom Server ausgeliefert -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js" type="module"></script>
 </body>
