@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <!-- Zoom explizit erlauben (wichtig fürs Pinch-/Touchpad-Zoom auf dem Canvas) -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
+  <!-- Immer Desktop-Darstellung: feste Layout-Breite -->
+  <meta name="viewport" content="width=1100, user-scalable=yes">
   <title>Canvas Wars</title>
   <link rel="stylesheet" href="styles.css">
   <style>
+    /* Logo/Branding immer oben rechts (keine Mobile-Umsortierung) */
     .controls { position: relative; }
     .brand-abs {
       position: absolute;
@@ -20,27 +21,23 @@
       width: 100%;
       height: auto;
     }
-    @media (max-width: 900px) {
-      .brand-abs {
-        position: static;
-        margin-top: 8px;
-        max-width: 260px;
-      }
-    }
 
+    /* Board-Container */
     .board {
       background-color: #2b2b2b;
       padding: 20px;
       border-radius: 10px;
       position: relative;
     }
+
+    /* Canvas mittig, Zoom erlaubt */
     .board canvas {
       display: block;
       margin: 0 auto;
       background-color: #ffffff;
-      /* Canvas darf gezoomt werden (Pinch & Touchpad) */
       touch-action: pan-x pan-y pinch-zoom;
     }
+
     .board .overlay {
       position: absolute;
       inset: 0;
@@ -84,7 +81,7 @@
         <button id="btnJoin">Join</button>
       </div>
 
-      <!-- Logo bleibt unverändert -->
+      <!-- Logo bleibt unverändert oben rechts -->
       <div class="brand-abs">
         <img src="hsd%20logo.png"
              alt="Hochschule Düsseldorf – Fachbereich Elektro- &amp; Informationstechnik">
