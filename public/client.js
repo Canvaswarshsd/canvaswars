@@ -16,6 +16,10 @@ const cooldownLabel = $('cooldownLabel');
 const overlay = $('overlay');
 const canvas = $('canvas');
 const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false; // Pixel bleiben knackig
+
+// --- Sichtbarkeit des Gitters steuern ---
+const SHOW_GRID = false; // false = Gitter unsichtbar
 
 // --- Lokaler Grid-Cache: sorgt dafür, dass wir nach Resize alles neu malen können ---
 let localGrid = Object.create(null);
@@ -95,8 +99,14 @@ function computeCellSize() {
 function drawGridLines() {
   const { gridSize, cellSize } = state;
   ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Hintergrundfläche
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0,0,gridSize*cellSize,gridSize*cellSize);
+
+  // Gitter nur zeichnen, wenn aktiviert
+  if (!SHOW_GRID) return;
+
   ctx.strokeStyle = '#e0e0e0';
   ctx.lineWidth = 1;
   for (let i=0;i<=gridSize;i++) {
@@ -113,11 +123,11 @@ function drawGridLines() {
   }
 }
 
-// Nur zeichnen (nicht speichern)
+// Nur zeichnen (nicht speichern) – Zelle VOLL füllen (keine weißen Ränder)
 function paintCell(x,y,color) {
   const s = state.cellSize;
   ctx.fillStyle = color;
-  ctx.fillRect(x*s+1, y*s+1, s-1, s-1);
+  ctx.fillRect(x*s, y*s, s, s);
 }
 
 // Zeichnen + im lokalen Cache speichern
@@ -252,7 +262,6 @@ socket.on('snapshot', (data = {}) => {
   localGrid = Object.create(null);
   if (grid) {
     for (const key in grid) {
-      const [xStr,yStr] = key.split('_');
       const cell = grid[key];
       localGrid[key] = cell.color;
     }
@@ -316,7 +325,7 @@ requestAnimationFrame(tick);
   function applyResize() {
     computeCellSize();
     drawGridLines();
-    drawAllCellsFromCache(); // <— nach jedem echten Resize sofort wieder alles malen
+    drawAllCellsFromCache(); // nach jedem echten Resize sofort wieder alles malen
     lastH = window.innerHeight;
     lastW = window.innerWidth;
   }
