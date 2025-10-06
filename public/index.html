@@ -6,20 +6,120 @@
   <meta name="viewport" content="width=1100, user-scalable=yes">
   <title>Canvas Wars</title>
   <link rel="stylesheet" href="styles.css">
+
   <style>
-    .controls { position: relative; }
-    .brand-abs { position: absolute; top: 20px; right: 24px; display: block; max-width: 550px; }
-    .brand-abs img { display: block; width: 100%; height: auto; }
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #f7f7f7;
+      color: #222;
+    }
 
-    .board { background-color: #2b2b2b; padding: 20px; border-radius: 10px; position: relative; }
-    .board canvas { display: block; margin: 0 auto; background-color: #ffffff; touch-action: pan-x pan-y pinch-zoom; }
-    .board .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: clamp(24px, 5vw, 48px); color: #333; pointer-events: none; }
+    .app {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px;
+    }
 
-    .mod-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-    .mod-tools button { padding:8px 12px; border-radius:10px; border:1px solid #ccc; background:#f4f4f4; cursor:pointer; }
-    .mod-tools input[type="number"] { width:64px; padding:6px 8px; border:1px solid #ccc; border-radius:8px; }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+
+    .status {
+      font-size: 1rem;
+      color: #555;
+    }
+
+    /* --- Branding oben rechts --- */
+    .controls {
+      position: relative;
+      padding-top: 40px;
+    }
+
+    .brand-abs {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      max-width: 380px;       /* obere Grenze der Breite */
+      width: 28vw;            /* responsive: 28% der Bildschirmbreite */
+      min-width: 260px;       /* untere Grenze */
+    }
+
+    .brand-abs img {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+    }
+
+    /* --- Restliches Layout --- */
+    .board {
+      background-color: #2b2b2b;
+      padding: 20px;
+      border-radius: 10px;
+      position: relative;
+    }
+
+    .board canvas {
+      display: block;
+      margin: 0 auto;
+      background-color: #ffffff;
+      touch-action: pan-x pan-y pinch-zoom;
+    }
+
+    .board .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(24px, 5vw, 48px);
+      color: #333;
+      pointer-events: none;
+    }
+
+    .mod-tools {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .mod-tools button {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      background: #f4f4f4;
+      cursor: pointer;
+    }
+
+    .mod-tools input[type="number"] {
+      width: 64px;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    .footer {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      color: #555;
+    }
   </style>
 </head>
+
 <body>
   <div class="app">
     <header>
@@ -51,8 +151,9 @@
         <button id="btnJoin">Join</button>
       </div>
 
+      <!-- Neues Logo oben rechts -->
       <div class="brand-abs">
-        <img src="hsd%20logo.png" alt="Hochschule Düsseldorf – Fachbereich Elektro- &amp; Informationstechnik">
+        <img src="hsd logo.png" alt="Hochschule Düsseldorf – Fachbereich Elektro- &amp; Informationstechnik">
       </div>
     </section>
 
