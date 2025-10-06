@@ -1,3 +1,4 @@
+/* ========== Base ========== */
 * { box-sizing: border-box; }
 
 html, body {
@@ -6,19 +7,11 @@ html, body {
   font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   background: #fafafa;
   color: #111;
-
-  /* verhindert Back/Refresh durch Overscroll auf vielen Browsern */
   overscroll-behavior: none;
-
-  /* erlaubt global Pinch-/Touchpad-Zoom (Canvas inkl.) */
   touch-action: pan-x pan-y pinch-zoom;
 }
 
-.app {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 16px;
-}
+.app { max-width: 1100px; margin: 0 auto; padding: 16px; }
 
 header {
   display: flex;
@@ -27,15 +20,8 @@ header {
   margin-bottom: 12px;
 }
 
-h1 {
-  font-size: 20px;
-  margin: 0;
-}
-
-.status {
-  font-size: 14px;
-  color: #555;
-}
+h1 { font-size: 20px; margin: 0; }
+.status { font-size: 14px; color: #555; }
 
 .controls,
 .host-panel,
@@ -49,10 +35,24 @@ h1 {
   margin-bottom: 12px;
 }
 
-.controls .block { 
-  margin-right: 12px; 
-  margin-bottom: 8px; 
+/* ========== FORM + LOGO LAYOUT (Grid) ========== */
+/* Die Eingabefelder stehen links in Spalte 1.
+   Das Logo ist NICHT dahinter, sondern füllt die rechte Spalte vollständig,
+   startet also "nach" den Feldern und füllt den restlichen Kasten. */
+.controls {
+  display: grid;
+  grid-template-columns: minmax(320px, 520px) 1fr; /* links Felder, rechts Logo */
+  gap: 16px 24px;
+  align-items: start;
 }
+
+/* alle Form-Blöcke links halten */
+.controls > .block,
+.controls > .inline {
+  grid-column: 1; /* linke Spalte */
+}
+
+.controls .block { margin-right: 0; margin-bottom: 8px; }
 
 .controls .block label {
   display: block;
@@ -76,11 +76,40 @@ h1 {
   cursor: pointer;
 }
 
-.controls .inline { 
-  display: flex; 
-  align-items: center; 
+.controls .inline { display: flex; align-items: center; gap: 8px; }
+
+/* ===== Logo-Bereich rechts (ersetzt .brand-abs absolute Position) ===== */
+.brand-abs {
+  grid-column: 2;        /* rechte Spalte */
+  grid-row: 1 / -1;      /* über die volle Höhe der linken Inhalte spannen */
+  align-self: stretch;   /* gesamte Höhe füllen */
+  border-radius: 12px;
+  overflow: hidden;      /* kein Überlappen */
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
+  min-height: 160px;     /* etwas Mindesthöhe, falls Form sehr kurz ist */
 }
 
+.brand-abs img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;     /* füllt den Kasten ohne Verzerrung, schneidet ggf. minimal */
+}
+
+/* kleiner Screens: Logo unter die Felder (volle Breite) */
+@media (max-width: 900px) {
+  .controls {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .brand-abs {
+    grid-column: 1;
+    grid-row: auto;
+    min-height: 140px;
+  }
+}
+
+/* ========== Host/Palette/Board/Etc. ========== */
 .host-panel h2 { margin-top: 0; }
 
 .host-panel .grid {
@@ -90,23 +119,11 @@ h1 {
   margin-bottom: 8px;
 }
 
-.host-panel .row { 
-  display: flex; 
-  gap: 8px; 
-  flex-wrap: wrap; 
-}
+.host-panel .row { display: flex; gap: 8px; flex-wrap: wrap; }
 
-.palette { 
-  display: flex; 
-  align-items: center; 
-  justify-content: space-between; 
-}
+.palette { display: flex; align-items: center; justify-content: space-between; }
 
-.colors { 
-  display: flex; 
-  gap: 6px; 
-  flex-wrap: wrap; 
-}
+.colors { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .color {
   width: 28px;
@@ -116,9 +133,7 @@ h1 {
   cursor: pointer;
 }
 
-.color.sel { 
-  outline: 2px solid #111; 
-}
+.color.sel { outline: 2px solid #111; }
 
 .board {
   position: relative;
@@ -134,11 +149,7 @@ canvas {
   border: 1px solid #e5e5e5;
   border-radius: 8px;
   background: #fff;
-
-  /* Canvas: Zoom & Scroll-Gesten erlauben */
   touch-action: pan-x pan-y pinch-zoom;
-
-  /* Pixel-CANVAS bleibt beim Zoom knackig */
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
@@ -160,38 +171,4 @@ canvas {
   justify-content: space-between;
   font-size: 14px;
   color: #444;
-}
-
-/* =========================================================
-   LOGO OBEN RECHTS
-   ========================================================= */
-.brand-abs {
-  position: absolute;
-  top: -10px;           /* leicht nach oben verschoben */
-  right: 40px;          /* weiter nach rechts */
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  max-width: 550px;     /* maximale Breite */
-  width: 38vw;          /* responsive */
-  min-width: 320px;     /* kleinste Größe */
-  z-index: 10;
-}
-
-.brand-abs img {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-  border-radius: 8px;
-  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.25)); /* dezenter Schatten */
-}
-
-/* Optional: Bei sehr kleinen Bildschirmen Logo automatisch kleiner machen */
-@media (max-width: 900px) {
-  .brand-abs {
-    right: 20px;
-    top: 0;
-    width: 60vw;
-    max-width: 400px;
-  }
 }
