@@ -16,12 +16,16 @@ const cooldownLabel = $('cooldownLabel');
 const overlay = $('overlay');
 const canvas = $('canvas');
 const ctx = canvas.getContext('2d');
-ctx.imageSmoothingEnabled = false; // Pixel bleiben knackig
+ctx.imageSmoothingEnabled = false; // scharfe Pixel
 
 // --- Sichtbarkeit des Gitters steuern ---
-const SHOW_GRID = false; // false = Gitter unsichtbar
+const SHOW_GRID = false; // false = Gitter aus
 
-// --- Lokaler Grid-Cache: sorgt dafür, dass wir nach Resize alles neu malen können ---
+// --- Moderations-UI ---
+const btnEraser = $('btnEraser');
+const eraseSizeInput = $('eraseSize');
+
+// --- Lokaler Grid-Cache: nach Resize/Scroll sofort neu malen ---
 let localGrid = Object.create(null);
 
 // Overlay helpers
@@ -48,7 +52,9 @@ let state = {
   cellSize: 16,
   lastPlaceAt: 0,
   joined: false,
-  status: 'lobby'
+  status: 'lobby',
+  eraserOn: false,
+  eraseSize: 3
 };
 
 const PALETTE = [
@@ -76,6 +82,22 @@ function buildPalette() {
     state.color = PALETTE[0];
   }
   cooldownLabel.style.userSelect = 'none';
+
+  // Moderations-Controls
+  if (btnEraser) {
+    btnEraser.addEventListener('click', () => {
+      if (!state.isHost) { alert('Nur Host darf den Radierer benutzen.'); return; }
+      state.eraserOn = !state.eraserOn;
+      btnEraser.textContent = state.eraserOn ? 'Eraser: ON' : 'Eraser: OFF';
+    });
+  }
+  if (eraseSizeInput) {
+    eraseSizeInput.addEventListener('change', () => {
+      const v = Math.max(1, Math.min(50, Number(eraseSizeInput.value) || 1));
+      state.eraseSize = v;
+      eraseSizeInput.value = String(v);
+    });
+  }
 }
 
 // Canvas dimensionieren
@@ -100,11 +122,10 @@ function drawGridLines() {
   const { gridSize, cellSize } = state;
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // Hintergrundfläche
+  // Hintergrund
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0,0,gridSize*cellSize,gridSize*cellSize);
 
-  // Gitter nur zeichnen, wenn aktiviert
   if (!SHOW_GRID) return;
 
   ctx.strokeStyle = '#e0e0e0';
@@ -123,7 +144,7 @@ function drawGridLines() {
   }
 }
 
-// Nur zeichnen (nicht speichern) – Zelle VOLL füllen (keine weißen Ränder)
+// Nur zeichnen (nicht speichern) – Zelle voll ausfüllen
 function paintCell(x,y,color) {
   const s = state.cellSize;
   ctx.fillStyle = color;
@@ -134,6 +155,19 @@ function paintCell(x,y,color) {
 function setCellLocal(x, y, color) {
   localGrid[`${x}_${y}`] = color;
   paintCell(x, y, color);
+}
+
+// Lokales Löschen eines Bereichs (weiß)
+function eraseLocal(cx, cy, size) {
+  const n = Math.max(1, Math.floor(size));
+  const half = Math.floor(n / 2);
+  for (let y = cy - half; y < cy - half + n; y++) {
+    for (let x = cx - half; x < cx - half + n; x++) {
+      if (x < 0 || y < 0 || x >= state.gridSize || y >= state.gridSize) continue;
+      delete localGrid[`${x}_${y}`];
+      paintCell(x, y, '#ffffff');
+    }
+  }
 }
 
 function canvasXY(evt) {
@@ -187,6 +221,7 @@ function join() {
   state.team = team;
   state.isHost = isHost;
   hostPanel.hidden = !isHost;
+  if (btnEraser) btnEraser.disabled = !isHost;
   sessionLbl.textContent = pin;
   socket.emit('join', { pin, name, team, isHost });
 }
@@ -211,10 +246,18 @@ function resetGrid() { socket.emit('resetGrid', { pin: state.pin }); }
 canvas.addEventListener('click', (evt) => {
   if (!state.joined) { alert('Join first'); return; }
   if (state.status !== 'running') return;
+
+  const { x, y } = canvasXY(evt);
+
+  if (state.eraserOn && state.isHost) {
+    eraseLocal(x, y, state.eraseSize);
+    socket.emit('eraseArea', { pin: state.pin, cx: x, cy: y, size: state.eraseSize });
+    return;
+  }
+
   const now = Date.now();
   if (state.lastPlaceAt && now - state.lastPlaceAt < state.cooldownSec*1000) return;
 
-  const { x, y } = canvasXY(evt);
   if (x < 0 || y < 0 || x >= state.gridSize || y >= state.gridSize) return;
 
   state.lastPlaceAt = now;
@@ -241,7 +284,7 @@ $('btnExport').addEventListener('click', () => {
 // Socket handlers
 socket.on('connect', () => {
   conn.textContent = 'OK';
-  // Nach jeder (Neu-)Verbindung automatisch wieder beitreten
+  // Auto-Rejoin
   if (state.pin && state.name) {
     socket.emit('join', {
       pin: state.pin,
@@ -251,14 +294,29 @@ socket.on('connect', () => {
     });
   }
 });
-
 socket.on('disconnect', () => { conn.textContent = '—'; });
+
+socket.on('hostDenied', (msg) => {
+  state.isHost = false;
+  const isHostChk = document.getElementById('isHost');
+  if (isHostChk) isHostChk.checked = false;
+  if (hostPanel) hostPanel.hidden = true;
+  if (btnEraser) {
+    btnEraser.disabled = true;
+    state.eraserOn = false;
+    btnEraser.textContent = 'Eraser: OFF';
+  }
+  alert(msg || 'In dieser Lobby gibt es bereits einen Host.');
+});
+socket.on('hostRequired', (msg) => {
+  alert(msg || 'Nur der Host darf diese Aktion ausführen.');
+});
 
 socket.on('snapshot', (data = {}) => {
   const { meta, grid } = data;
   applyMeta(meta);
 
-  // Cache neu aufbauen aus Snapshot
+  // Cache aus Snapshot füllen
   localGrid = Object.create(null);
   if (grid) {
     for (const key in grid) {
@@ -276,11 +334,9 @@ socket.on('snapshot', (data = {}) => {
 
 socket.on('meta', (meta) => { applyMeta(meta); });
 
-// Bei Grid-Reset: Cache leeren + neu zeichnen
 socket.on('gridReset', () => {
   localGrid = Object.create(null);
   drawGridLines();
-  // nichts zu malen
 });
 
 socket.on('pixel', ({ key, cell }) => {
@@ -291,13 +347,23 @@ socket.on('pixel', ({ key, cell }) => {
   paintCell(x, y, cell.color);
 });
 
+// Vom Server gelöschte Zellen (Radierer)
+socket.on('erase', ({ keys = [] }) => {
+  for (const k of keys) {
+    const [xs, ys] = k.split('_');
+    const x = parseInt(xs, 10);
+    const y = parseInt(ys, 10);
+    delete localGrid[k];
+    paintCell(x, y, '#ffffff');
+  }
+});
+
 // Meta anwenden
 function applyMeta(meta) {
   if (!meta) return;
   if (meta.gridSize && meta.gridSize !== state.gridSize) {
     state.gridSize = meta.gridSize;
-    // Grid-Size hat sich geändert -> Cache invalid
-    localGrid = Object.create(null);
+    localGrid = Object.create(null); // Cache invalid
     computeCellSize();
     drawGridLines();
   }
@@ -325,7 +391,7 @@ requestAnimationFrame(tick);
   function applyResize() {
     computeCellSize();
     drawGridLines();
-    drawAllCellsFromCache(); // nach jedem echten Resize sofort wieder alles malen
+    drawAllCellsFromCache();
     lastH = window.innerHeight;
     lastW = window.innerWidth;
   }
@@ -333,16 +399,13 @@ requestAnimationFrame(tick);
   window.addEventListener('resize', () => {
     const dh = Math.abs(window.innerHeight - lastH);
     const dw = Math.abs(window.innerWidth  - lastW);
-
-    // Mini-Resizes (Adressleiste ein/aus) ignorieren
     if (dh < 80 && dw < 30) return;
-
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(applyResize, 200);
   }, { passive: true });
 })();
 
-// Optional: Beim Tab-Wechsel zurück -> sicherheitshalber neu malen
+// Beim Zurückkehren in den Tab sicher neu malen
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     drawGridLines();
