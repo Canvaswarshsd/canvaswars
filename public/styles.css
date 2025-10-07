@@ -92,12 +92,9 @@ h1 { font-size: 20px; margin: 0; }
   background-repeat: no-repeat;
   box-shadow: none;
   min-height: 220px;         /* etwas höher für mehr Präsenz */
-  width: 100%;               /* <-- neu: füllt nur die Grid-Spalte */
-  min-width: 0;              /* <-- neu: darf auf schmalen Screens schrumpfen */
+  width: 100%;               /* füllt nur die Grid-Spalte */
+  min-width: 0;              /* darf auf schmalen Screens schrumpfen */
 }
-
-/* falls ein <img> im HTML liegt, ausblenden */
-.brand-abs img { display: none; }
 
 /* ========== Mobile Layout ========== */
 @media (max-width: 900px) {
@@ -177,4 +174,14 @@ canvas {
   font-size: 14px;
   color: #444;
 }
+
+/* ===== Nur für Smartphones/Touch (auch bei „Desktop-Ansicht“) ===== */
+@media (hover: none) and (pointer: coarse) {
+  /* Platz rechts fürs absolut positionierte Logo aus index.html reservieren */
+  .controls {
+    padding-right: 860px;
+    min-height: 363px;
+  }
+}
+
 
